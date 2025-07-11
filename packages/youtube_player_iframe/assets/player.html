@@ -10,7 +10,7 @@
         width: 100%;
         height: 100%;
         background-color: black;
-        pointer-events: <<pointerEvents>>;
+        pointer-events: auto;
       }
 
       body {
@@ -19,6 +19,12 @@
         height: 100%;
         background-color: black;
         pointer-events: inherit;
+      }
+
+      .embed-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
       }
 
       .embed-container iframe,
@@ -31,13 +37,37 @@
         height: 100% !important;
         pointer-events: inherit;
       }
+
+      /* Hide YouTube overlay elements */
+      .ytp-chrome-top,
+      .ytp-show-cards-title,
+      .ytp-ce-element,
+      .ytp-cards-button,
+      .ytp-endscreen-element,
+      .ytp-watermark,
+      .ytp-suggested-action,
+      .ytp-pause-overlay,
+      .ytp-scroll-min,
+      .ytp-videowall-still {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+      }
+
+      /* Additional overlay hiding */
+      .video-ads,
+      .ytp-ad-overlay-container,
+      .ytp-ad-text-overlay,
+      .ytp-ad-overlay-close-button {
+        display: none !important;
+      }
     </style>
-    <title>YouTube Player</title>
+    <title>Clean YouTube Player</title>
   </head>
 
   <body>
     <div class="embed-container">
-      <div id="<<playerId>>"></div>
+      <div id="player"></div>
     </div>
 
     <script>
@@ -46,38 +76,68 @@
       var firstScriptTag = document.getElementsByTagName("script")[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-      var platform = "<<platform>>";
-      var host = "<<host>>";
       var player;
       var timerId;
 
       function onYouTubeIframeAPIReady() {
-        player = new YT.Player("<<playerId>>", {
-          host: host,
+        player = new YT.Player("player", {
+          height: '100%',
+          width: '100%',
+          videoId: 'dQw4w9WgXcQ', // Replace with your video ID
           playerVars: {
+            // Hide YouTube logo
             modestbranding: 1,
+            
+            // Hide related videos at the end
             rel: 0,
-            iv_load_policy: 3,
-            controls: 1,
+            
+            // Hide video info
             showinfo: 0,
-            fs: 1,
-            playsinline: 1,
-            cc_load_policy: 0,
-            autoplay: 0
+            
+            // Hide controls initially (they'll show on hover/interaction)
+            autohide: 1,
+            
+            // Disable keyboard controls
+            disablekb: 1,
+            
+            // Hide annotations
+            iv_load_policy: 3,
+            
+            // Hide fullscreen button
+            fs: 0,
+            
+            // Auto-play (may not work due to browser policies)
+            autoplay: 0,
+            
+            // Start muted (helps with autoplay)
+            mute: 0,
+            
+            // Hide video title and uploader info
+            showinfo: 0,
+            
+            // Additional parameters to minimize UI
+            cc_load_policy: 0, // Hide closed captions
+            color: 'white',
+            controls: 1, // Show controls (set to 0 to hide completely)
+            enablejsapi: 1,
+            origin: window.location.origin
           },
           events: {
             onReady: function (event) {
-              handleFullScreenForMobilePlatform();
+              console.log('Player ready');
+              hideOverlayElements();
               sendMessage('Ready', event);
             },
             onStateChange: function (event) {
               clearTimeout(timerId);
               sendMessage('StateChange', event.data);
+              hideOverlayElements();
+              
               if (event.data == 1) {
                 timerId = setInterval(function () {
                   var state = {
-                    currentTime: player.getCurrentTime(),
-                    loadedFraction: player.getVideoLoadedFraction()
+                    'currentTime': player.getCurrentTime(),
+                    'loadedFraction': player.getVideoLoadedFraction()
                   };
                   sendMessage('VideoState', JSON.stringify(state));
                 }, 100);
@@ -94,88 +154,88 @@
             },
             onError: function (event) {
               sendMessage('PlayerError', event.data);
-            },
-            onAutoplayBlocked: function (event) {
-              sendMessage('AutoplayBlocked', event.data);
             }
           }
         });
-
-        player.setSize(window.innerWidth, window.innerHeight);
       }
 
+      function hideOverlayElements() {
+        // Additional JavaScript to hide overlay elements
+        setTimeout(function() {
+          var iframe = document.querySelector('iframe');
+          if (iframe && iframe.contentDocument) {
+            try {
+              var iframeDoc = iframe.contentDocument;
+              var overlayElements = iframeDoc.querySelectorAll(
+                '.ytp-chrome-top, .ytp-show-cards-title, .ytp-ce-element, ' +
+                '.ytp-cards-button, .ytp-endscreen-element, .ytp-watermark, ' +
+                '.ytp-suggested-action, .ytp-pause-overlay, .ytp-videowall-still'
+              );
+              
+              overlayElements.forEach(function(element) {
+                element.style.display = 'none';
+                element.style.opacity = '0';
+                element.style.visibility = 'hidden';
+              });
+            } catch (e) {
+              // Cross-origin restrictions may prevent access
+              console.log('Cannot access iframe content due to CORS policy');
+            }
+          }
+        }, 1000);
+      }
+
+      // Listen for messages from parent window
       window.addEventListener('message', (event) => {
         try {
           var data = JSON.parse(event.data);
-          if (data.function) {
+
+          if(data.function){
             var rawFunction = data.function.replaceAll('<<quote>>', '"');
             var result = eval(rawFunction);
-            if (data.key) {
-              var message = {};
-              message[data.key] = result;
+
+            if(data.key) {
+              var message = {}
+              message[data.key] = result
               var messageString = JSON.stringify(message);
-              event.source.postMessage(messageString, '*');
+              event.source.postMessage(messageString , '*');
             }
           }
-        } catch (e) {}
+        } catch (e) { 
+          console.log('Error processing message:', e);
+        }
       }, false);
 
       window.onresize = function () {
-        player.setSize(window.innerWidth, window.innerHeight);
+        if (player && player.setSize) {
+          player.setSize(window.innerWidth, window.innerHeight);
+        }
       };
 
-      function sendPlatformMessage(message) {
-        switch (platform) {
-          case 'android':
-            <<playerId>>.postMessage(message);
-            break;
-          case 'ios':
-            <<playerId>>.postMessage(message, '*');
-            break;
-          case 'web':
-            window.parent.postMessage(message, '*');
-            break;
-        }
-      }
-
       function sendMessage(key, data) {
-        var message = {};
-        message[key] = data;
-        message['playerId'] = '<<playerId>>';
-        var messageString = JSON.stringify(message);
-        sendPlatformMessage(messageString);
+         var message = {};
+         message[key] = data;
+         message['playerId'] = 'player';
+         var messageString = JSON.stringify(message);
+
+         // Send to parent window
+         window.parent.postMessage(messageString, '*');
       }
 
       function getVideoData() {
-        return prepareDataForPlatform(player.getVideoData());
+        return player.getVideoData();
       }
 
       function getPlaylist() {
-        return prepareDataForPlatform(player.getPlaylist());
+        return player.getPlaylist();
       }
 
-      function getAvailablePlaybackRates() {
-        return prepareDataForPlatform(player.getAvailablePlaybackRates());
+      function getAvailablePlaybackRates(){
+        return player.getAvailablePlaybackRates();
       }
 
-      function prepareDataForPlatform(data) {
-        if (platform == 'android') return data;
-        return JSON.stringify(data);
-      }
-
-      function handleFullScreenForMobilePlatform() {
-        if (platform != 'web') {
-          var ytFrame = document.getElementsByTagName('iframe')[0].contentWindow.document;
-          var fsButton = ytFrame.getElementsByClassName('ytp-fullscreen-button ytp-button')[0];
-          if (fsButton != null) {
-            var fsButtonCopy = fsButton.cloneNode(true);
-            fsButton.replaceWith(fsButtonCopy);
-            fsButtonCopy.onclick = function () {
-              sendMessage('FullscreenButtonPressed', '');
-            };
-          }
-        }
-      }
+      // Hide overlay elements periodically
+      setInterval(hideOverlayElements, 5000);
     </script>
   </body>
 </html>
