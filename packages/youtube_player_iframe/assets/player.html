@@ -1,10 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <style>
     html {
       width: 100%;
@@ -40,7 +37,7 @@
       border: none;
     }
 
-    /* Hide YouTube UI elements */
+    /* Hide all YouTube UI elements including logo, more videos, and share icons */
     .ytp-chrome-top,
     .ytp-chrome-bottom,
     .ytp-watermark,
@@ -96,14 +93,18 @@
     .ytp-autonav-endscreen-upnext-header,
     .ytp-autonav-endscreen-upnext-thumbnail,
     .ytp-autonav-endscreen-upnext-title,
-    .ytp-autonav-endscreen-upnext-author {
+    .ytp-autonav-endscreen-upnext-author,
+    /* Additional elements to hide */
+    .ytp-logo,
+    .ytp-share-button,
+    .ytp-more-videos,
+    .ytp-share-panel {
       display: none !important;
       opacity: 0 !important;
       visibility: hidden !important;
       pointer-events: none !important;
     }
 
-    /* Ensure video container is visible */
     .html5-video-container,
     .html5-main-video {
       display: block !important;
@@ -141,7 +142,6 @@
         host: host,
         playerVars: {
           ...<<playerVars>>,
-          // Additional parameters to hide YouTube UI
           modestbranding: 1,
           rel: 0,
           showinfo: 0,
@@ -160,7 +160,6 @@
             handleFullScreenForMobilePlatform();
             sendMessage('Ready', event);
             hideYouTubeUI();
-            // Continuously hide YouTube UI elements
             hideUIInterval = setInterval(hideYouTubeUI, 100);
           },
           onStateChange: function (event) {
@@ -204,7 +203,6 @@
         if (iframe && iframe.contentDocument) {
           var iframeDoc = iframe.contentDocument;
           
-          // Hide all YouTube UI elements
           var elementsToHide = [
             '.ytp-chrome-top', '.ytp-chrome-bottom', '.ytp-watermark',
             '.ytp-title', '.ytp-menu-button-wrapper', '.ytp-cards-button',
@@ -216,7 +214,9 @@
             '.ytp-overlay', '.ytp-tooltip', '.ytp-impression-link',
             '.ytp-videowall-still', '.ytp-ce-covering-overlay',
             '.ytp-ce-expanding-overlay', '.ytp-title-channel', '.ytp-title-text',
-            '.annotation', '.video-annotations', '.iv-branding'
+            '.annotation', '.video-annotations', '.iv-branding',
+            /* Additional elements */
+            '.ytp-logo', '.ytp-share-button', '.ytp-more-videos', '.ytp-share-panel'
           ];
           
           elementsToHide.forEach(function(selector) {
@@ -230,7 +230,6 @@
           });
         }
       } catch (e) {
-        // Cross-origin restrictions, fallback to CSS injection
         console.log('Could not access iframe content:', e);
       }
     }
@@ -313,7 +312,6 @@
       }
     }
 
-    // Clean up intervals when page unloads
     window.addEventListener('beforeunload', function() {
       if (hideUIInterval) {
         clearInterval(hideUIInterval);
